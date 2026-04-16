@@ -1,0 +1,1379 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Smart Shuttle - College Bus Automation</title>
+    <!-- Leaflet Map CSS/JS -->
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+    <style>
+        /* Base Styles - Mobile First (360px reference) */
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+            font-family: Arial, Helvetica, sans-serif;
+        }
+
+        body {
+            background-color: #ffffff;
+            color: #333333;
+            line-height: 1.6;
+            max-width: 480px;
+            /* To keep it mobile-like even on desktop */
+            margin: 0 auto;
+            min-height: 100vh;
+            position: relative;
+            box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
+        }
+
+        /* Shared Components */
+        .btn {
+            background-color: #1E3A8A;
+            color: #ffffff;
+            border: none;
+            padding: 12px 20px;
+            font-size: 16px;
+            border-radius: 8px;
+            /* Medium radius */
+            cursor: pointer;
+            width: 100%;
+            text-align: center;
+            display: block;
+            margin-top: 15px;
+        }
+
+        .btn:active {
+            background-color: #152c6b;
+        }
+
+        .btn-outline {
+            background-color: transparent;
+            color: #d9534f;
+            border: 2px solid #d9534f;
+            margin-top: 20px;
+        }
+
+        .btn-outline:active {
+            background-color: #f2dede;
+        }
+
+        .btn:disabled {
+            background-color: #cccccc;
+            cursor: not-allowed;
+        }
+
+        /* Screen Management */
+        .screen {
+            display: none;
+            padding: 20px;
+            min-height: 100vh;
+            flex-direction: column;
+        }
+
+        .screen.active {
+            display: flex;
+        }
+
+        /* Screen 1: Splash Screen */
+        #splash-screen {
+            justify-content: center;
+            align-items: center;
+            text-align: center;
+            background-color: #f8f9fa;
+        }
+
+        .logo-placeholder {
+            width: 100px;
+            height: 100px;
+            background-color: #1E3A8A;
+            color: white;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 32px;
+            font-weight: bold;
+            margin-bottom: 20px;
+        }
+
+        .splash-title {
+            color: #1E3A8A;
+            font-size: 24px;
+            margin-bottom: 10px;
+        }
+
+        .splash-subtitle {
+            color: #666;
+            font-size: 14px;
+            margin-bottom: 40px;
+        }
+
+        /* Screen 2: Login */
+        #login-screen {
+            justify-content: center;
+        }
+
+        .login-header {
+            text-align: center;
+            margin-bottom: 30px;
+            color: #1E3A8A;
+        }
+
+        .form-group {
+            margin-bottom: 15px;
+        }
+
+        .form-group label {
+            display: block;
+            margin-bottom: 5px;
+            font-size: 14px;
+            font-weight: bold;
+        }
+
+        .form-group input {
+            width: 100%;
+            padding: 10px;
+            border: 1px solid #cccccc;
+            border-radius: 6px;
+            font-size: 16px;
+        }
+
+        .register-link {
+            text-align: center;
+            margin-top: 15px;
+            font-size: 14px;
+        }
+
+        .register-link a {
+            color: #1E3A8A;
+            text-decoration: none;
+        }
+
+        /* Top Navigation for Internal Pages */
+        .top-nav {
+            background-color: #1E3A8A;
+            color: white;
+            padding: 15px 20px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            position: sticky;
+            top: 0;
+            z-index: 10;
+        }
+
+        .top-nav h2 {
+            font-size: 18px;
+            margin: 0;
+        }
+
+        .nav-btn {
+            background-color: rgba(255, 255, 255, 0.2);
+            border: none;
+            color: white;
+            padding: 5px 10px;
+            border-radius: 4px;
+            font-size: 12px;
+            cursor: pointer;
+        }
+
+        /* Screen 3: Dashboard */
+        #dashboard-screen {
+            padding: 0;
+            display: none;
+        }
+
+        #dashboard-screen.active {
+            display: block;
+        }
+
+        .dashboard-content {
+            padding: 20px;
+        }
+
+        .greeting {
+            font-size: 20px;
+            color: #333;
+            margin-bottom: 20px;
+        }
+
+        .section-title {
+            font-size: 16px;
+            color: #666;
+            margin-bottom: 10px;
+            border-bottom: 1px solid #eee;
+            padding-bottom: 5px;
+        }
+
+        /* Card Layout */
+        .card {
+            background-color: #ffffff;
+            border: 1px solid #e0e0e0;
+            border-radius: 8px;
+            padding: 15px;
+            margin-bottom: 15px;
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
+            /* very soft shadow */
+        }
+
+        .card-header {
+            font-weight: bold;
+            font-size: 16px;
+            color: #1E3A8A;
+            margin-bottom: 8px;
+        }
+
+        .card-detail {
+            font-size: 14px;
+            color: #555;
+            margin-bottom: 5px;
+            display: flex;
+            justify-content: space-between;
+        }
+
+        .seats-available {
+            color: #2e7d32;
+            font-weight: bold;
+        }
+
+        .card-action {
+            margin-top: 10px;
+            padding-top: 10px;
+            border-top: 1px solid #f0f0f0;
+        }
+
+        .card-action .btn {
+            margin-top: 0;
+            padding: 8px;
+            font-size: 14px;
+        }
+
+        /* Modal for Seat Booking */
+        #seat-modal {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: rgba(0, 0, 0, 0.5);
+            padding: 20px;
+            z-index: 20;
+            align-items: center;
+            justify-content: center;
+        }
+
+        #seat-modal.active {
+            display: flex;
+        }
+
+        .modal-content {
+            background: white;
+            padding: 20px;
+            border-radius: 8px;
+            width: 100%;
+            max-width: 440px;
+        }
+
+        .seat-grid {
+            display: grid;
+            grid-template-columns: repeat(5, 1fr);
+            gap: 10px;
+            margin: 15px 0;
+        }
+
+        .seat-btn {
+            padding: 10px;
+            border: 1px solid #ccc;
+            border-radius: 4px;
+            background: #fff;
+            text-align: center;
+        }
+
+        .seat-btn.booked {
+            background: #ddd;
+            color: #888;
+            border-color: #aaa;
+        }
+
+        .seat-btn.available {
+            background: #e8f5e9;
+            color: #2e7d32;
+            border-color: #a5d6a7;
+            cursor: pointer;
+        }
+
+        .seat-btn.selected {
+            background: #1E3A8A;
+            color: white;
+            border-color: #1E3A8A;
+        }
+
+        /* Screen 4: Tickets list */
+        #tickets-screen {
+            padding: 0;
+            display: none;
+        }
+
+        #tickets-screen.active {
+            display: block;
+        }
+
+        .tickets-container {
+            padding: 20px;
+        }
+
+        /* Screen 5: Ticket Details */
+        #ticket-detail-screen {
+            padding: 0;
+            display: none;
+        }
+
+        #ticket-detail-screen.active {
+            display: block;
+        }
+
+        .ticket-container {
+            padding: 20px;
+        }
+
+        .ticket-card {
+            background-color: #fff;
+            border: 1px solid #ddd;
+            border-radius: 10px;
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.08);
+            margin-bottom: 20px;
+            overflow: hidden;
+        }
+
+        .ticket-header {
+            background-color: #1E3A8A;
+            color: white;
+            text-align: center;
+            padding: 15px;
+            font-weight: bold;
+            font-size: 18px;
+        }
+
+        .ticket-body {
+            padding: 20px;
+        }
+
+        .ticket-row {
+            display: flex;
+            justify-content: space-between;
+            margin-bottom: 15px;
+        }
+
+        .ticket-label {
+            font-size: 12px;
+            color: #777;
+            text-transform: uppercase;
+        }
+
+        .ticket-value {
+            font-size: 16px;
+            color: #333;
+            font-weight: bold;
+        }
+
+        .ticket-separator {
+            border-top: 2px dashed #ccc;
+            margin: 0px 20px;
+            position: relative;
+        }
+
+        .ticket-separator::before,
+        .ticket-separator::after {
+            content: '';
+            position: absolute;
+            width: 20px;
+            height: 20px;
+            background-color: #ffffff;
+            border: 1px solid #ddd;
+            border-radius: 50%;
+            top: -11px;
+        }
+
+        .ticket-separator::before {
+            left: -31px;
+            border-left: none;
+            border-top: none;
+            border-bottom: none;
+        }
+
+        .ticket-separator::after {
+            right: -31px;
+            border-right: none;
+            border-top: none;
+            border-bottom: none;
+        }
+
+        .ticket-footer {
+            padding: 20px;
+            text-align: center;
+        }
+
+        .status-badge {
+            display: inline-block;
+            background-color: #e8f5e9;
+            color: #2e7d32;
+            padding: 5px 12px;
+            border-radius: 4px;
+            font-weight: bold;
+            font-size: 14px;
+            border: 1px solid #c8e6c9;
+        }
+        /* Payment Screen Styles */
+        .payment-methods {
+            margin-top: 20px;
+        }
+
+        .payment-option {
+            display: flex;
+            align-items: center;
+            background: #f8f9fa;
+            border: 1px solid #ddd;
+            border-radius: 10px;
+            padding: 12px;
+            margin-bottom: 12px;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+
+        .payment-option:active {
+            transform: scale(0.98);
+            background: #eef2ff;
+            border-color: #1E3A8A;
+        }
+
+        .upi-icon {
+            width: 40px;
+            height: 40px;
+            border-radius: 8px;
+            background: #fff;
+            margin-right: 15px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: bold;
+            font-size: 10px;
+            border: 1px solid #eee;
+            color: #fff;
+        }
+
+        /* Loading Overlay for Payment */
+        .loader-overlay {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: rgba(255, 255, 255, 0.95);
+            z-index: 100;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            text-align: center;
+        }
+
+        .spinner {
+            width: 50px;
+            height: 50px;
+            border: 5px solid #f3f3f3;
+            border-top: 5px solid #1E3A8A;
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+            margin-bottom: 20px;
+        }
+
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+
+        /* PIN Screen Styles */
+        .pin-container {
+            display: flex;
+            justify-content: center;
+            gap: 15px;
+            margin: 30px 0;
+        }
+
+        .pin-dot {
+            width: 15px;
+            height: 15px;
+            border-radius: 50%;
+            background: #ddd;
+            border: 1px solid #ccc;
+        }
+
+        .pin-dot.filled {
+            background: #1E3A8A;
+            border-color: #1E3A8A;
+        }
+
+        .keypad {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 15px;
+            padding: 20px;
+        }
+
+        .key {
+            padding: 20px;
+            text-align: center;
+            font-size: 24px;
+            font-weight: bold;
+            background: #f8f9fa;
+            border-radius: 50%;
+            width: 70px;
+            height: 70px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            margin: 0 auto;
+            cursor: pointer;
+            transition: background 0.2s;
+        }
+
+        .key:active {
+            background: #e2e8f0;
+        }
+
+        /* Success Screen Styles */
+        #payment-success-screen {
+            background: #10b981;
+            color: white;
+            justify-content: center;
+            align-items: center;
+            text-align: center;
+        }
+
+        .success-circle {
+            width: 120px;
+            height: 120px;
+            border: 5px solid white;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 60px;
+            margin-bottom: 30px;
+            animation: bounceIn 0.8s cubic-bezier(0.68, -0.55, 0.265, 1.55);
+        }
+
+        @keyframes bounceIn {
+            0% { transform: scale(0); opacity: 0; }
+            80% { transform: scale(1.1); }
+            100% { transform: scale(1); opacity: 1; }
+        }
+    </style>
+</head>
+
+<body>
+
+    <!-- SCREEN 1: SPLASH SCREEN -->
+    <div id="splash-screen" class="screen active">
+        <div class="logo-placeholder">SS</div>
+        <h1 class="splash-title">Smart Shuttle</h1>
+        <p class="splash-subtitle">College Bus Automation System</p>
+        <button class="btn" onclick="navigateTo('login-screen')">Continue</button>
+    </div>
+
+    <!-- SCREEN 2: LOGIN SCREEN -->
+    <div id="login-screen" class="screen">
+        <div class="login-header">
+            <h2>Student Login</h2>
+        </div>
+        <form onsubmit="handleLogin(event)">
+            <div class="form-group">
+                <label for="rollno">Roll No</label>
+                <input type="text" id="rollno" placeholder="e.g. 20IT104" required>
+            </div>
+            <div class="form-group">
+                <label for="name">Full Name</label>
+                <input type="text" id="name" placeholder="Enter your full name" required>
+            </div>
+            <button type="submit" class="btn">Login</button>
+            <div class="register-link">
+                New student? <a href="#" onclick="navigateTo('register-screen')">Register here</a>
+            </div>
+
+            <div style="text-align:center; margin-top:30px;">
+                <a href="/admin" style="font-size:12px; color:#888; text-decoration:none;">Admin Access</a>
+            </div>
+        </form>
+    </div>
+
+    <!-- SCREEN 6: REGISTER SCREEN -->
+    <div id="register-screen" class="screen">
+        <nav class="top-nav">
+            <h2>New Registration</h2>
+            <button class="nav-btn" onclick="navigateTo('login-screen')">Back</button>
+        </nav>
+        <div style="padding:20px;">
+            <p style="margin-bottom:20px; color:#666; font-size:14px;">Please fill in your details to register. Your
+                account will require administrator approval before you can log in.</p>
+            <form onsubmit="handleRegister(event)">
+                <div class="form-group">
+                    <label for="reg-rollno">Roll No</label>
+                    <input type="text" id="reg-rollno" placeholder="e.g. 24MID2002" required>
+                </div>
+                <div class="form-group">
+                    <label for="reg-name">Full Name</label>
+                    <input type="text" id="reg-name" placeholder="Enter your full name" required>
+                </div>
+                <button type="submit" id="reg-btn" class="btn">Submit Registration</button>
+            </form>
+        </div>
+    </div>
+
+    <!-- SCREEN 3: DASHBOARD SCREEN -->
+    <div id="dashboard-screen" class="screen">
+        <nav class="top-nav">
+            <h2>Smart Shuttle</h2>
+            <div style="display: flex; gap: 8px;">
+                <button class="nav-btn" style="background-color: #10b981;" onclick="initTrackingScreen()">Track Buses</button>
+                <button class="nav-btn" onclick="loadTicketsScreen()">My Tickets</button>
+                <button class="nav-btn" style="background-color: rgba(255, 68, 68, 0.4);"
+                    onclick="logout()">Logout</button>
+            </div>
+        </nav>
+
+        <div class="dashboard-content">
+            <h1 class="greeting">Good Morning, <span id="user-display-name">Student</span></h1>
+            <h3 class="section-title">Available Routes for Today</h3>
+            <div id="routes-container">
+                <!-- Routes loaded here -->
+                <p>Loading routes...</p>
+            </div>
+        </div>
+    </div>
+
+    <!-- SEAT SELECTION MODAL -->
+    <div id="seat-modal">
+        <div class="modal-content">
+            <h3 style="margin-bottom:10px; color:#1E3A8A">Select a Seat</h3>
+            <p id="modal-route-name" style="font-size:14px; color:#555;"></p>
+
+            <div id="seat-grid" class="seat-grid">
+                <!-- Seats will be loaded here dynamically -->
+            </div>
+
+            <div style="display:flex; justify-content:space-between; margin-top:20px;">
+                <button class="btn" style="width:48%; background:#d9534f; margin-top:0;"
+                    onclick="closeModal()">Cancel</button>
+                <button class="btn" id="confirm-book-btn" style="width:48%; margin-top:0;" disabled
+                    onclick="confirmBooking()">Book (Rs. 20)</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- SCREEN 4: TICKETS LIST SCREEN -->
+    <div id="tickets-screen" class="screen">
+        <nav class="top-nav">
+            <h2>My Tickets</h2>
+            <div style="display: flex; gap: 8px;">
+                <button class="nav-btn" onclick="navigateTo('dashboard-screen')">Back</button>
+                <button class="nav-btn" style="background-color: rgba(255, 68, 68, 0.4);"
+                    onclick="logout()">Logout</button>
+            </div>
+        </nav>
+        <div class="tickets-container" id="tickets-list">
+            <p>Loading your tickets...</p>
+        </div>
+    </div>
+
+    <!-- SCREEN 5: TICKET DETAIL SCREEN -->
+    <div id="ticket-detail-screen" class="screen">
+        <nav class="top-nav">
+            <h2>Ticket Details</h2>
+            <div style="display: flex; gap: 8px;">
+                <button class="nav-btn" onclick="loadTicketsScreen()">Back</button>
+                <button class="nav-btn" style="background-color: rgba(255, 68, 68, 0.4);"
+                    onclick="logout()">Logout</button>
+            </div>
+        </nav>
+
+        <div class="ticket-container">
+            <div class="ticket-card" id="e-ticket-card">
+                <!-- Ticket details injected here -->
+            </div>
+            <button class="btn btn-outline" id="cancel-ticket-btn" onclick="cancelCurrentTicket()">Cancel
+                Ticket</button>
+        </div>
+    </div>
+
+    <!-- SCREEN 7: PAYMENT SCREEN (UPI SIMULATION) -->
+    <div id="payment-screen" class="screen">
+        <nav class="top-nav">
+            <h2>Secure Payment</h2>
+            <button class="nav-btn" onclick="navigateTo('dashboard-screen')">Cancel</button>
+        </nav>
+        <div style="padding: 20px;">
+            <div style="text-align: center; margin-bottom: 25px;">
+                <p style="color: #666; font-size: 14px;">Total Amount to Pay</p>
+                <h1 style="color: #1E3A8A; font-size: 36px;">Rs. 20.00</h1>
+            </div>
+
+            <p class="section-title">Select UPI App</p>
+            <div class="payment-methods">
+                <div class="payment-option" onclick="processFakePayment('Google Pay')">
+                    <div class="upi-icon" style="background: #4285F4;">G</div>
+                    <div style="flex-grow:1;">
+                        <div style="font-weight:bold;">Google Pay</div>
+                        <div style="font-size:12px; color:#888;">Direct Bank Transfer</div>
+                    </div>
+                    <div style="color: #1E3A8A;">&gt;</div>
+                </div>
+
+                <div class="payment-option" onclick="processFakePayment('PhonePe')">
+                    <div class="upi-icon" style="background: #5f259f;">PP</div>
+                    <div style="flex-grow:1;">
+                        <div style="font-weight:bold;">PhonePe</div>
+                        <div style="font-size:12px; color:#888;">UPI ID Linked Bank</div>
+                    </div>
+                    <div style="color: #1E3A8A;">&gt;</div>
+                </div>
+
+                <div class="payment-option" onclick="processFakePayment('Paytm')">
+                    <div class="upi-icon" style="background: #00BAF2;">PT</div>
+                    <div style="flex-grow:1;">
+                        <div style="font-weight:bold;">Paytm</div>
+                        <div style="font-size:12px; color:#888;">Wallet or UPI</div>
+                    </div>
+                    <div style="color: #1E3A8A;">&gt;</div>
+                </div>
+            </div>
+
+            <div style="text-align: center; margin-top: 30px; color: #888; font-size: 11px;">
+                <p>🛡️ Secured by UPI 2.0 Encryption</p>
+                <p>Do not press back or refresh during transaction.</p>
+            </div>
+        </div>
+    </div>
+
+    <!-- PROCESSING OVERLAY -->
+    <div id="payment-loader" class="loader-overlay">
+        <div class="spinner"></div>
+        <h3 id="loader-msg">Verifying with Bank...</h3>
+        <p style="color: #666; font-size: 12px; margin-top: 10px;">Please do not exit the app</p>
+    </div>
+
+    <!-- SCREEN 8: UPI PIN ENTRY SCREEN -->
+    <div id="upi-pin-screen" class="screen" style="background: #fff;">
+        <div style="padding: 20px; text-align: center;">
+            <p style="margin-bottom: 10px; color: #666;">Enter 6-Digit UPI PIN</p>
+            <h3 id="payment-target-app" style="color: #1E3A8A; margin-bottom: 20px;">UPI Payment</h3>
+            
+            <div class="pin-container" id="pin-dots">
+                <div class="pin-dot"></div>
+                <div class="pin-dot"></div>
+                <div class="pin-dot"></div>
+                <div class="pin-dot"></div>
+                <div class="pin-dot"></div>
+                <div class="pin-dot"></div>
+            </div>
+
+            <div class="keypad">
+                <div class="key" onclick="pressKey('1')">1</div>
+                <div class="key" onclick="pressKey('2')">2</div>
+                <div class="key" onclick="pressKey('3')">3</div>
+                <div class="key" onclick="pressKey('4')">4</div>
+                <div class="key" onclick="pressKey('5')">5</div>
+                <div class="key" onclick="pressKey('6')">6</div>
+                <div class="key" onclick="pressKey('7')">7</div>
+                <div class="key" onclick="pressKey('8')">8</div>
+                <div class="key" onclick="pressKey('9')">9</div>
+                <div class="key" style="background: transparent;"></div>
+                <div class="key" onclick="pressKey('0')">0</div>
+                <div class="key" style="color: #ef4444; font-size: 18px;" onclick="pressKey('del')">DEL</div>
+            </div>
+            
+            <button class="btn" style="margin-top: 30px; background: #10b981;" onclick="submitPin()">Submit Securely</button>
+            <button class="btn btn-outline" style="border:none; margin-top: 5px; color: #888; font-size: 14px;" onclick="navigateTo('payment-screen')">Cancel Payment</button>
+        </div>
+    </div>
+
+    <!-- SCREEN 9: PAYMENT SUCCESS SCREEN -->
+    <div id="payment-success-screen" class="screen">
+        <div class="success-circle">✓</div>
+        <h1 style="font-size: 32px; margin-bottom: 10px;">Paid Successfully</h1>
+        <p style="opacity: 0.9;">Rs. 20.00</p>
+        <div style="margin-top: 50px; font-size: 14px; opacity: 0.8;">
+            <p id="success-ticket-id">Fetching Ticket ID...</p>
+            <p>Redirecting to your tickets...</p>
+        </div>
+    </div>
+
+    <!-- SCREEN 10: TRACKING SCREEN -->
+    <div id="tracking-screen" class="screen" style="padding: 0;">
+        <nav class="top-nav" style="border-radius: 0;">
+            <h2>Live Bus Tracking</h2>
+            <button class="nav-btn" onclick="navigateTo('dashboard-screen')">Back</button>
+        </nav>
+        <div id="map" style="flex-grow: 1; width: 100%; height: 50vh; z-index: 1;"></div>
+        <div style="padding: 15px; background: white; border-top: 2px solid #1E3A8A; flex-grow: 1; overflow-y: auto;">
+            <h3 class="section-title" style="margin-top: 0; color: #1E3A8A;">Nearest Bus Info</h3>
+            <div id="tracking-info-container" style="margin-top: 10px;">
+                <p>Locating buses...</p>
+            </div>
+            
+            <h3 class="section-title" style="margin-top: 20px; color: #555;">All Active Buses</h3>
+            <div id="all-buses-container" style="font-size: 14px; color: #666; line-height: 1.6;"></div>
+        </div>
+    </div>
+
+    <!-- Application Logic -->
+    <script>
+        // Global State
+        let currentUser = {
+            rollNo: '',
+            name: ''
+        };
+        let activeBusId = null;
+        let selectedSeats = []; // Changed from selectedSeatId to array for multiple tickets
+        let activeTicketId = null;
+
+        // --- Navigation ---
+        function navigateTo(screenId) {
+            document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
+            document.getElementById(screenId).classList.add('active');
+            window.scrollTo(0, 0);
+            
+            // Stop GPS updates if leaving tracking screen
+            if (screenId !== 'tracking-screen' && trackingInterval) {
+                clearInterval(trackingInterval);
+                trackingInterval = null;
+            }
+
+            // Refresh dashboard data whenever navigating to it
+            if (screenId === 'dashboard-screen') {
+                fetchRoutes();
+            }
+        }
+
+        // --- Logout Logic ---
+        function logout() {
+            if (confirm("Are you sure you want to logout?")) {
+                currentUser.rollNo = '';
+                currentUser.name = '';
+                document.getElementById('rollno').value = '';
+                document.getElementById('name').value = '';
+                navigateTo('login-screen');
+            }
+        }
+
+        // --- Login Logic ---
+        async function handleLogin(e) {
+            e.preventDefault();
+            const rollInput = document.getElementById('rollno').value.trim().toUpperCase();
+            const nameInput = document.getElementById('name').value.trim();
+
+            try {
+                const response = await fetch(`/api/verify_login?rollNo=${encodeURIComponent(rollInput)}&name=${encodeURIComponent(nameInput)}`);
+                const result = await response.json();
+
+                if (result.status === 'success') {
+                    currentUser.rollNo = rollInput;
+                    currentUser.name = result.name;
+                    document.getElementById('user-display-name').innerText = currentUser.name;
+                    fetchRoutes();
+                    navigateTo('dashboard-screen');
+                } else {
+                    alert(result.message);
+                }
+            } catch (err) {
+                alert("Connection error. Is the server running?");
+            }
+        }
+
+        // --- Register Logic ---
+        async function handleRegister(e) {
+            e.preventDefault();
+            const rollInput = document.getElementById('reg-rollno').value.trim().toUpperCase();
+            const nameInput = document.getElementById('reg-name').value.trim();
+            const btn = document.getElementById('reg-btn');
+
+            // Client-side validation
+            const rollPattern = /^\d{2}[A-Z]{3}\d{4}$/;
+            if (!rollPattern.test(rollInput)) {
+                alert("Invalid Roll Number format!\nPlease use format like: 24MID2002 (2 numbers, 3 letters, 4 numbers)");
+                return;
+            }
+
+            btn.disabled = true;
+            btn.innerText = "Submitting...";
+
+            try {
+                const response = await fetch(`/api/register?rollNo=${encodeURIComponent(rollInput)}&name=${encodeURIComponent(nameInput)}`);
+                const result = await response.json();
+
+                if (result.status === 'success') {
+                    alert(result.message);
+                    navigateTo('login-screen');
+                    // Clear fields
+                    document.getElementById('reg-rollno').value = '';
+                    document.getElementById('reg-name').value = '';
+                } else {
+                    alert(result.message);
+                }
+            } catch (err) {
+                alert("Connection error. Failed to submit registration.");
+            } finally {
+                btn.disabled = false;
+                btn.innerText = "Submit Registration";
+            }
+        }
+
+        // --- Fetch & Render Routes (API call to backend C program) ---
+        async function fetchRoutes() {
+            try {
+                const response = await fetch('/api/routes');
+                const routes = await response.json();
+                const container = document.getElementById('routes-container');
+                container.innerHTML = '';
+
+                if (routes.length === 0) {
+                    container.innerHTML = '<p>No routes currently available.</p>';
+                    return;
+                }
+
+                routes.forEach(route => {
+                    const html = `
+                    <div class="card">
+                        <div class="card-header">${route.route}</div>
+                        <div class="card-detail">
+                            <span>Available Seats:</span>
+                            <span class="seats-available" style="color: ${route.availableSeats === 0 ? '#d32f2f' : '#2e7d32'}">
+                                ${route.availableSeats} / 30
+                            </span>
+                        </div>
+                        <div class="card-action">
+                            <button class="btn" ${route.availableSeats === 0 ? 'disabled' : ''} onclick="openSeatModal(${route.busId}, '${route.route}')">
+                                ${route.availableSeats === 0 ? 'Fully Booked' : 'Book Seat'}
+                            </button>
+                        </div>
+                    </div>`;
+                    container.innerHTML += html;
+                });
+            } catch (err) {
+                console.error(err);
+                document.getElementById('routes-container').innerHTML = '<p style="color:red;">Error connecting to the backend.</p>';
+            }
+        }
+
+        // --- Modal & Seat Selection ---
+        async function openSeatModal(busId, routeName) {
+            activeBusId = busId;
+            selectedSeats = []; // Reset selected seats pool
+            document.getElementById('modal-route-name').innerText = routeName;
+            document.getElementById('confirm-book-btn').disabled = true;
+            document.getElementById('confirm-book-btn').innerText = "Book Seat (Rs. 20)";
+            document.getElementById('seat-modal').classList.add('active');
+
+            const grid = document.getElementById('seat-grid');
+            grid.innerHTML = '<p>Loading seats...</p>';
+
+            try {
+                const response = await fetch(`/api/seats?busId=${busId}`);
+                const seats = await response.json();
+                grid.innerHTML = '';
+
+                seats.forEach((status, index) => {
+                    const seatNo = index + 1;
+                    const isBooked = status === 1;
+                    const el = document.createElement('div');
+                    el.className = `seat-btn ${isBooked ? 'booked' : 'available'}`;
+                    el.innerText = seatNo < 10 ? '0' + seatNo : seatNo;
+                    if (!isBooked) {
+                        el.onclick = () => selectSeat(el, seatNo);
+                    }
+                    grid.appendChild(el);
+                });
+            } catch (err) {
+                grid.innerHTML = '<p style="color:red">Failed to load seats.</p>';
+            }
+        }
+
+        function closeModal() {
+            document.getElementById('seat-modal').classList.remove('active');
+        }
+
+        function selectSeat(element, seatNo) {
+            const index = selectedSeats.indexOf(seatNo);
+            if (index > -1) {
+                // Already selected, so deselect it
+                selectedSeats.splice(index, 1);
+                element.classList.remove('selected');
+            } else {
+                // Add to selection
+                selectedSeats.push(seatNo);
+                element.classList.add('selected');
+            }
+
+            const btn = document.getElementById('confirm-book-btn');
+            if (selectedSeats.length > 0) {
+                btn.disabled = false;
+                const total = selectedSeats.length * 20;
+                btn.innerText = `Book ${selectedSeats.length} Seat${selectedSeats.length > 1 ? 's' : ''} (Rs. ${total})`;
+            } else {
+                btn.disabled = true;
+                btn.innerText = "Book (Rs. 20)";
+            }
+        }
+
+        // --- Payment & PIN Logic ---
+        let currentPin = '';
+        let targetPaymentApp = '';
+
+        function confirmBooking() {
+            if (selectedSeats.length === 0) return;
+            closeModal();
+            
+            // Update total price on payment screen
+            const total = selectedSeats.length * 20;
+            document.querySelector('#payment-screen h1').innerText = `Rs. ${total}.00`;
+            document.querySelector('#payment-success-screen p').innerText = `Rs. ${total}.00`;
+            
+            navigateTo('payment-screen');
+        }
+
+        function processFakePayment(appName) {
+            targetPaymentApp = appName;
+            currentPin = '';
+            updatePinDots();
+            document.getElementById('payment-target-app').innerText = appName + ' Payment';
+            navigateTo('upi-pin-screen');
+        }
+
+        function pressKey(k) {
+            if (k === 'del') {
+                currentPin = currentPin.slice(0, -1);
+            } else if (currentPin.length < 6) {
+                currentPin += k;
+            }
+            updatePinDots();
+        }
+
+        function updatePinDots() {
+            const dots = document.querySelectorAll('.pin-dot');
+            dots.forEach((dot, i) => {
+                if (i < currentPin.length) dot.classList.add('filled');
+                else dot.classList.remove('filled');
+            });
+        }
+
+        async function submitPin() {
+            if (currentPin.length < 6) {
+                alert('Please enter your 6-digit UPI PIN');
+                return;
+            }
+
+            const loader = document.getElementById('payment-loader');
+            const loaderMsg = document.getElementById('loader-msg');
+            
+            loader.style.display = 'flex';
+            loaderMsg.innerText = "Encrypting Data...";
+            
+            await new Promise(r => setTimeout(r, 1500));
+            loaderMsg.innerText = "Processing Transaction...";
+            await new Promise(r => setTimeout(r, 2000));
+            
+            try {
+                let successCount = 0;
+                let lastTicketId = null;
+
+                // Loop through all selected seats and book them
+                for (const seatNo of selectedSeats) {
+                    loaderMsg.innerText = `Booking Seat ${seatNo}...`;
+                    const url = `/api/book?busId=${activeBusId}&seatNo=${seatNo}&rollNo=${encodeURIComponent(currentUser.rollNo)}&name=${encodeURIComponent(currentUser.name)}`;
+                    const response = await fetch(url);
+                    const result = await response.json();
+                    
+                    if (result.status === 'success') {
+                        successCount++;
+                        lastTicketId = result.ticketId;
+                    }
+                }
+
+                loader.style.display = 'none';
+
+                if (successCount === selectedSeats.length) {
+                    const ticketMsg = successCount > 1 ? `${successCount} Tickets Reserved` : `Ticket ID: #${lastTicketId}`;
+                    document.getElementById('success-ticket-id').innerText = ticketMsg;
+                    navigateTo('payment-success-screen');
+                    
+                    // Stay on success screen for 3 seconds, then show tickets
+                    setTimeout(() => {
+                        loadTicketsScreen();
+                    }, 3000);
+                } else if (successCount > 0) {
+                    alert(`Partial Success: ${successCount} seats booked, but some failed. Check your ticket list.`);
+                    loadTicketsScreen();
+                } else {
+                    alert('❌ Payment Failed: Seats could not be reserved.');
+                    navigateTo('dashboard-screen');
+                }
+            } catch (err) {
+                loader.style.display = 'none';
+                alert('Connection error during payment processing.');
+                navigateTo('dashboard-screen');
+            }
+        }
+
+        // --- Tickets List ---
+        async function loadTicketsScreen() {
+            navigateTo('tickets-screen');
+            const list = document.getElementById('tickets-list');
+            list.innerHTML = '<p>Loading your tickets...</p>';
+
+            try {
+                const response = await fetch(`/api/tickets?rollNo=${encodeURIComponent(currentUser.rollNo)}`);
+                const tickets = await response.json();
+                list.innerHTML = '';
+
+                if (tickets.length === 0) {
+                    list.innerHTML = '<p>You have no active bookings.</p>';
+                    return;
+                }
+
+                tickets.forEach(ticket => {
+                    const html = `
+                    <div class="card" onclick="viewTicket(${ticket.ticketId}, ${ticket.busId}, ${ticket.seatNo}, ${ticket.amountPaid})" style="cursor:pointer;">
+                        <div class="card-header">Ticket #${ticket.ticketId}</div>
+                        <div class="card-detail">
+                            <span>Bus ID: ${ticket.busId}</span>
+                            <span>Seat: <strong style="color:#1E3A8A;">${ticket.seatNo}</strong></span>
+                        </div>
+                    </div>`;
+                    list.innerHTML += html;
+                });
+            } catch (err) {
+                list.innerHTML = '<p style="color:red">Error loading tickets.</p>';
+            }
+        }
+
+        // --- View Single Ticket Details ---
+        function viewTicket(ticketId, busId, seatNo, amountPaid) {
+            activeTicketId = ticketId;
+            const card = document.getElementById('e-ticket-card');
+
+            card.innerHTML = `
+                <div class="ticket-header">E-TICKET INVOICE</div>
+                <div class="ticket-body">
+                    <div class="ticket-row">
+                        <div>
+                            <div class="ticket-label">Student Name</div>
+                            <div class="ticket-value">${currentUser.name}</div>
+                        </div>
+                        <div style="text-align: right;">
+                            <div class="ticket-label">Roll No</div>
+                            <div class="ticket-value">${currentUser.rollNo}</div>
+                        </div>
+                    </div>
+                </div>
+                <div class="ticket-separator"></div>
+                <div class="ticket-body">
+                    <div class="ticket-row">
+                        <div>
+                            <div class="ticket-label">Ticket ID</div>
+                            <div class="ticket-value">#${ticketId}</div>
+                        </div>
+                        <div style="text-align: right;">
+                            <div class="ticket-label">Fare Paid</div>
+                            <div class="ticket-value">Rs. ${amountPaid}</div>
+                        </div>
+                    </div>
+                    <div class="ticket-row">
+                        <div>
+                            <div class="ticket-label">Bus ID</div>
+                            <div class="ticket-value">0${busId}</div>
+                        </div>
+                        <div style="text-align: right;">
+                            <div class="ticket-label">Seat No</div>
+                            <div class="ticket-value" style="color: #1E3A8A; font-size: 20px;">${seatNo}</div>
+                        </div>
+                    </div>
+                </div>
+                <div class="ticket-footer" style="background-color: #f9f9f9; border-top: 1px solid #eee;">
+                    <div class="ticket-label" style="margin-bottom: 5px;">Booking Status</div>
+                    <div class="status-badge">Confirmed</div>
+                </div>
+            `;
+            navigateTo('ticket-detail-screen');
+        }
+
+        // --- Cancel Ticket ---
+        async function cancelCurrentTicket() {
+            if (!activeTicketId) return;
+            if (confirm('Are you sure you want to cancel Ticket #' + activeTicketId + '?')) {
+                const btn = document.getElementById('cancel-ticket-btn');
+                btn.disabled = true;
+                btn.innerText = 'Cancelling...';
+
+                try {
+                    const response = await fetch(`/api/cancel?ticketId=${activeTicketId}`);
+                    const result = await response.json();
+                    if (result.status === 'success') {
+                        alert('Ticket cancelled successfully and refund initiated.');
+                        loadTicketsScreen();
+                    } else {
+                        alert('Error: ' + result.message);
+                    }
+                } catch (e) {
+                    alert('Failed to connect to backend.');
+                } finally {
+                    btn.disabled = false;
+                    btn.innerText = 'Cancel Ticket';
+                }
+            }
+        }
+        // --- GPS Tracking Simulation ---
+        let map = null;
+        let busMarkers = {};
+        let userMarker = null;
+        let trackingInterval = null;
+        
+        const userLat = 12.9716; 
+        const userLng = 79.1585;
+
+        // Custom SVGs since defaults don't always load from CDNs perfectly without correct path configs
+        const busIcon = L.icon({
+            iconUrl: 'https://cdn-icons-png.flaticon.com/512/3448/3448339.png',
+            iconSize: [32, 32],
+            iconAnchor: [16, 32],
+            popupAnchor: [0, -32]
+        });
+
+        // Fixed Campus Route Waypoints (Strictly mapping to real OSRM road geometry)
+        const campusRoute = [[12.969302,79.155333],[12.969253,79.155332],[12.968811,79.155342],[12.968633,79.155333],[12.968131,79.155315],[12.968144,79.155627],[12.968115,79.155691],[12.968231,79.155808],[12.968328,79.155858],[12.968329,79.155896],[12.968331,79.155943],[12.968281,79.155986],[12.968239,79.156004],[12.968192,79.156062],[12.968062,79.156116],[12.968081,79.156046],[12.968104,79.155918],[12.968113,79.155813],[12.968114,79.15574],[12.968115,79.155691],[12.968085,79.155629],[12.968076,79.155306],[12.968055,79.154896],[12.968061,79.15457],[12.968108,79.15457],[12.968193,79.154568],[12.968306,79.154574],[12.9685,79.154577],[12.968651,79.154579],[12.968793,79.154559],[12.968898,79.154517],[12.969056,79.154442],[12.969241,79.154344],[12.969415,79.154269],[12.969559,79.154224],[12.969835,79.154169],[12.970198,79.154132],[12.970412,79.154143],[12.970807,79.154157],[12.970876,79.15414],[12.970929,79.154139],[12.970947,79.154151],[12.971057,79.154166],[12.971104,79.154273],[12.971117,79.154381],[12.97113,79.154482],[12.971215,79.155264],[12.971292,79.156204],[12.971298,79.156256],[12.971308,79.156333],[12.971329,79.156419],[12.971376,79.156467],[12.971454,79.15651],[12.971512,79.156518],[12.972079,79.156579],[12.972054,79.157099],[12.971914,79.157676],[12.971894,79.158098],[12.971869,79.15817],[12.97183,79.1582],[12.971779,79.158216],[12.971577,79.158226],[12.971577,79.158226],[12.971779,79.158216],[12.97183,79.1582],[12.971869,79.15817],[12.971894,79.158098],[12.971914,79.157676],[12.972054,79.157099],[12.972079,79.156579],[12.972765,79.15663],[12.973373,79.156684],[12.973716,79.156715],[12.973634,79.157926],[12.973645,79.158067],[12.97366,79.158272],[12.973666,79.15836],[12.9737,79.15885],[12.973724,79.159217],[12.973739,79.159635],[12.975757,79.159809],[12.975944,79.159834],[12.976116,79.159856],[12.97617,79.159863],[12.976116,79.159856],[12.975944,79.159834],[12.975757,79.159809],[12.975426,79.15978],[12.973739,79.159635],[12.973755,79.159831],[12.973787,79.160359],[12.973796,79.160507],[12.973799,79.16059],[12.973802,79.160657],[12.973776,79.160764],[12.973744,79.160861],[12.973676,79.160936],[12.973593,79.160979],[12.973493,79.160989],[12.972788,79.160979],[12.972678,79.160968],[12.972605,79.160925],[12.972545,79.160851],[12.972543,79.160918],[12.972557,79.161002],[12.97279,79.162555],[12.972878,79.163095],[12.973041,79.163988],[12.973097,79.164096],[12.973109,79.164145],[12.97316,79.164474],[12.973817,79.164485],[12.973814,79.164973],[12.973814,79.165063],[12.973114,79.16506],[12.972837,79.165123],[12.971933,79.16533],[12.970665,79.165634],[12.970626,79.165655],[12.970619,79.165688],[12.970636,79.165721],[12.970661,79.165728],[12.97119,79.165615],[12.971432,79.165563],[12.971878,79.165468],[12.971933,79.165493],[12.971988,79.165518],[12.972262,79.165641],[12.972225,79.165506],[12.971961,79.164401],[12.97194,79.164291],[12.971835,79.163732],[12.971728,79.163166],[12.971713,79.163085],[12.971594,79.163104],[12.97103,79.163196],[12.970639,79.163259],[12.970432,79.163292],[12.970639,79.163259],[12.971594,79.163104],[12.971713,79.163085],[12.971431,79.161585],[12.971251,79.160367],[12.971206,79.160061],[12.971004,79.158708],[12.970974,79.158708],[12.970312,79.158691],[12.969683,79.15868],[12.968726,79.158659],[12.968491,79.158658],[12.968565,79.159494],[12.968572,79.15957],[12.968385,79.159629],[12.96837,79.160027],[12.968304,79.160191],[12.968302,79.160333],[12.968267,79.160417],[12.967998,79.160435],[12.968267,79.160417],[12.968302,79.160333],[12.968304,79.160191],[12.96837,79.160027],[12.968385,79.159629],[12.968572,79.15957],[12.968491,79.158658],[12.968726,79.158659],[12.968726,79.158516],[12.968752,79.157465],[12.968774,79.157204],[12.968807,79.156567],[12.968795,79.156567],[12.968783,79.156415],[12.968804,79.155463],[12.968811,79.155342],[12.969253,79.155332],[12.969302,79.155333]];
+
+        // Initialize Fake Buses with target waypoints spread evenly along the route
+        const simulatedBuses = [
+            { id: 1, routeName: 'Library Route', lat: 12.969302, lng: 79.155333, targetIndex: 1, speed: 20 },
+            { id: 2, routeName: 'SJT Express', lat: 12.971914, lng: 79.157676, targetIndex: 56, speed: 22 },
+            { id: 3, routeName: 'Hostel Loop', lat: 12.971594, lng: 79.163104, targetIndex: 139, speed: 18 }
+        ];
+
+        // Haversine formula (Distance in KM)
+        function calculateDistance(lat1, lon1, lat2, lon2) {
+            var p = 0.017453292519943295;
+            var c = Math.cos;
+            var a = 0.5 - c((lat2 - lat1) * p)/2 + 
+                    c(lat1 * p) * c(lat2 * p) * 
+                    (1 - c((lon2 - lon1) * p))/2;
+            return 12742 * Math.asin(Math.sqrt(a)); 
+        }
+
+        function updateBusPositions() {
+            let nearestBus = null;
+            let nearestDist = 999999;
+            let allHtml = '';
+
+            simulatedBuses.forEach(bus => {
+                // Determine target waypoint
+                const target = campusRoute[bus.targetIndex];
+                const tLat = target[0];
+                const tLng = target[1];
+                
+                // Euclidian distance in degrees
+                const dLat = tLat - bus.lat;
+                const dLng = tLng - bus.lng;
+                const distDeg = Math.sqrt(dLat*dLat + dLng*dLng);
+                
+                if (distDeg < 0.00005) {
+                    // Reached waypoint, move to next
+                    bus.targetIndex = (bus.targetIndex + 1) % campusRoute.length;
+                } else {
+                    // Move towards target
+                    // Interval is 1.5s -> distance per interval in km
+                    const distKmToMove = bus.speed * (1.5 / 3600);
+                    // Approx km per degree is 111
+                    const distDegToMove = distKmToMove / 111.0;
+                    
+                    if (distDegToMove >= distDeg) {
+                        bus.lat = tLat;
+                        bus.lng = tLng;
+                        bus.targetIndex = (bus.targetIndex + 1) % campusRoute.length;
+                    } else {
+                        const ratio = distDegToMove / distDeg;
+                        bus.lat += dLat * ratio;
+                        bus.lng += dLng * ratio;
+                    }
+                }
+
+                if (busMarkers[bus.id]) {
+                    busMarkers[bus.id].setLatLng([bus.lat, bus.lng]);
+                }
+
+                const distKm = calculateDistance(userLat, userLng, bus.lat, bus.lng);
+                
+                if (distKm < nearestDist) {
+                    nearestDist = distKm;
+                    nearestBus = bus;
+                }
+
+                allHtml += `<div><strong>Bus 0${bus.id} (${bus.routeName}):</strong> <span>${(distKm * 1000).toFixed(0)} meters away</span></div>`;
+            });
+
+            document.getElementById('all-buses-container').innerHTML = allHtml;
+
+            // Generate ETA output
+            if (nearestBus) {
+                const etaMins = Math.max(1, Math.round((nearestDist / nearestBus.speed) * 60));
+                document.getElementById('tracking-info-container').innerHTML = `
+                    <div style="background: #e0f2fe; padding: 15px; border-radius: 8px; border-left: 5px solid #0284c7;">
+                        <h4 style="color: #0369a1; margin-bottom: 5px; font-size: 16px;">Closest Bus: 0${nearestBus.id} - ${nearestBus.routeName}</h4>
+                        <div style="font-size: 28px; font-weight: bold; color: #1E3A8A; margin: 10px 0;">
+                            ${etaMins} <span style="font-size: 16px; font-weight: normal;">Min Away</span>
+                        </div>
+                        <p style="color: #0284c7; font-size: 14px; font-weight: bold;">
+                            <span style="font-size:16px;">📍</span> Distance: ${nearestDist.toFixed(2)} km
+                        </p>
+                    </div>
+                `;
+            }
+        }
+
+        function initTrackingScreen() {
+            navigateTo('tracking-screen');
+
+            if (!map) {
+                setTimeout(() => {
+                    map = L.map('map').setView([userLat, userLng], 14);
+                    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+                        attribution: '© OpenStreetMap'
+                    }).addTo(map);
+
+                    userMarker = L.circleMarker([userLat, userLng], {
+                        color: 'white',
+                        weight: 2,
+                        fillColor: '#ef4444',
+                        fillOpacity: 1.0,
+                        radius: 8
+                    }).addTo(map).bindPopup('<b>You are here</b><br>(VIT Vellore)');
+
+                    simulatedBuses.forEach(bus => {
+                        const marker = L.marker([bus.lat, bus.lng], {icon: busIcon}).addTo(map)
+                            .bindPopup(`<b>Bus 0${bus.id}</b><br>${bus.routeName}`);
+                        busMarkers[bus.id] = marker;
+                    });
+                }, 100);
+            } else {
+                setTimeout(() => map.invalidateSize(), 150);
+            }
+
+            if (trackingInterval) clearInterval(trackingInterval);
+            updateBusPositions();
+            trackingInterval = setInterval(updateBusPositions, 1500);
+        }
+    </script>
+</body>
+
+</html>

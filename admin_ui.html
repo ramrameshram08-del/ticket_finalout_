@@ -1,0 +1,587 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Smart Shuttle - Administrator</title>
+    <style>
+        /* Base Styles - Mobile First (360px reference) */
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+            font-family: Arial, Helvetica, sans-serif;
+        }
+
+        body {
+            background-color: #ffffff;
+            color: #333333;
+            line-height: 1.6;
+            max-width: 480px;
+            margin: 0 auto;
+            min-height: 100vh;
+            position: relative;
+            box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
+        }
+
+        /* Shared Components */
+        .btn {
+            background-color: #1E3A8A;
+            color: #ffffff;
+            border: none;
+            padding: 12px 20px;
+            font-size: 16px;
+            border-radius: 8px;
+            cursor: pointer;
+            width: 100%;
+            text-align: center;
+            display: block;
+            margin-top: 15px;
+        }
+
+        .btn:active {
+            background-color: #152c6b;
+        }
+
+        .btn-outline {
+            background-color: transparent;
+            color: #d9534f;
+            border: 2px solid #d9534f;
+            margin-top: 20px;
+        }
+
+        .btn-outline:active {
+            background-color: #f2dede;
+        }
+
+        .btn-danger {
+            background-color: #d9534f;
+            color: white;
+            border: none;
+        }
+
+        .btn-danger:active {
+            background-color: #b52b27;
+        }
+
+        .btn:disabled {
+            background-color: #cccccc;
+            cursor: not-allowed;
+        }
+
+        /* Screen Management */
+        .screen {
+            display: none;
+            padding: 20px;
+            min-height: 100vh;
+            flex-direction: column;
+        }
+
+        .screen.active {
+            display: flex;
+        }
+
+        /* Screen 2: Login */
+        #login-screen {
+            justify-content: center;
+        }
+
+        .login-header {
+            text-align: center;
+            margin-bottom: 30px;
+            color: #1E3A8A;
+        }
+
+        .form-group {
+            margin-bottom: 15px;
+        }
+
+        .form-group label {
+            display: block;
+            margin-bottom: 5px;
+            font-size: 14px;
+            font-weight: bold;
+        }
+
+        .form-group input {
+            width: 100%;
+            padding: 10px;
+            border: 1px solid #cccccc;
+            border-radius: 6px;
+            font-size: 16px;
+        }
+
+        .register-link {
+            text-align: center;
+            margin-top: 15px;
+            font-size: 14px;
+        }
+
+        .register-link a {
+            color: #1E3A8A;
+            text-decoration: none;
+        }
+
+        /* Top Navigation for Internal Pages */
+        .top-nav {
+            background-color: #1E3A8A;
+            color: white;
+            padding: 15px 20px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            position: sticky;
+            top: 0;
+            z-index: 10;
+        }
+
+        .top-nav h2 {
+            font-size: 18px;
+            margin: 0;
+        }
+
+        .nav-btn {
+            background-color: rgba(255, 255, 255, 0.2);
+            border: none;
+            color: white;
+            padding: 5px 10px;
+            border-radius: 4px;
+            font-size: 12px;
+            cursor: pointer;
+        }
+
+        /* Dashboard */
+        .dashboard-content {
+            padding: 20px 0;
+        }
+
+        .greeting {
+            font-size: 20px;
+            color: #333;
+            margin-bottom: 20px;
+        }
+
+        .section-title {
+            font-size: 16px;
+            color: #666;
+            margin-bottom: 10px;
+            border-bottom: 1px solid #eee;
+            padding-bottom: 5px;
+            margin-top: 25px;
+        }
+
+        /* Card Layout */
+        .card {
+            background-color: #ffffff;
+            border: 1px solid #e0e0e0;
+            border-radius: 8px;
+            padding: 15px;
+            margin-bottom: 15px;
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
+        }
+
+        .card-header {
+            font-weight: bold;
+            font-size: 16px;
+            color: #1E3A8A;
+            margin-bottom: 8px;
+        }
+
+        .card-detail {
+            font-size: 14px;
+            color: #555;
+            margin-bottom: 5px;
+            display: flex;
+            justify-content: space-between;
+        }
+
+        .stat-huge {
+            font-size: 32px;
+            font-weight: bold;
+            color: #1E3A8A;
+            text-align: center;
+            margin: 10px 0;
+        }
+
+        .manifest-table {
+            width: 100%;
+            border-collapse: collapse;
+            font-size: 12px;
+            margin-top: 10px;
+        }
+
+        .manifest-table th,
+        .manifest-table td {
+            border: 1px solid #eee;
+            padding: 8px;
+            text-align: left;
+        }
+
+        .manifest-table th {
+            background-color: #f8f9fa;
+            color: #666;
+        }
+    </style>
+</head>
+
+<body>
+
+    <!-- SCREEN 1: LOGIN SCREEN -->
+    <div id="login-screen" class="screen active">
+        <div class="login-header">
+            <h2>Admin Portal</h2>
+        </div>
+        <form onsubmit="handleLogin(event)">
+            <div class="form-group">
+                <label for="password">Administrator Password</label>
+                <input type="password" id="password" placeholder="Hint: admin123" required>
+            </div>
+            <button type="submit" class="btn">Authenticate</button>
+
+            <div style="text-align:center; margin-top:30px;">
+                <a href="/" style="font-size:12px; color:#888; text-decoration:none;">Return to Student Portal</a>
+            </div>
+        </form>
+    </div>
+
+    <!-- SCREEN 2: DASHBOARD SCREEN -->
+    <div id="dashboard-screen" class="screen">
+        <nav class="top-nav">
+            <h2>Admin Nexus</h2>
+            <button class="nav-btn" onclick="logout()">Logout</button>
+        </nav>
+
+        <div class="dashboard-content">
+            <h1 class="greeting">System Overview</h1>
+
+            <div class="card">
+                <div class="card-header">Total Revenue</div>
+                <div class="stat-huge" id="revenue-val">Rs. 0</div>
+            </div>
+
+            <div class="card">
+                <div class="card-header">Total Seats Booked</div>
+                <div class="stat-huge" id="bookings-val" style="color: #2e7d32;">0</div>
+            </div>
+
+            <h3 class="section-title">Passenger Manifest</h3>
+            <div style="margin-bottom: 15px;">
+                <input type="text" id="searchInput" onkeyup="filterTable()"
+                    placeholder="Search by Roll No or Ticket ID..."
+                    style="width: 100%; padding: 10px; border: 1px solid #ccc; border-radius: 6px;">
+            </div>
+            <div id="manifest-container" style="overflow-x: auto;">
+                <p>Loading records...</p>
+            </div>
+
+            <h3 class="section-title">System Tools</h3>
+            <div style="display:grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-bottom: 20px;">
+                <button class="btn" style="margin-top:0;" onclick="loadPendingUsers()">Review Registrations</button>
+                <button class="btn" style="margin-top:0; background:#6b7280;" onclick="loadManageStudents()">Manage Students</button>
+            </div>
+            <button class="btn btn-danger" style="margin-top:0;" onclick="resetBuses()">Reset Database (Clear Everything)</button>
+        </div>
+    </div>
+
+    <!-- SCREEN 3: PENDING USERS SCREEN -->
+    <div id="pending-users-screen" class="screen">
+        <nav class="top-nav">
+            <h2>User Approvals</h2>
+            <button class="nav-btn" onclick="navigateTo('dashboard-screen')">Back</button>
+        </nav>
+        <div class="dashboard-content">
+            <h3 class="section-title">Pending Student Members</h3>
+            <div id="pending-users-container">
+                <!-- Loaded via JS -->
+                <p>Checking for new requests...</p>
+            </div>
+        </div>
+    </div>
+    
+    <!-- SCREEN 4: MANAGE ALL STUDENTS SCREEN -->
+    <div id="manage-students-screen" class="screen">
+        <nav class="top-nav">
+            <h2>Manage Students</h2>
+            <button class="nav-btn" onclick="navigateTo('dashboard-screen')">Back</button>
+        </nav>
+        <div class="dashboard-content">
+            <h3 class="section-title">Enrolled & Blacklisted Members</h3>
+            <div id="students-manage-container">
+                <!-- Loaded via JS -->
+                <p>Fetching member list...</p>
+            </div>
+        </div>
+    </div>
+
+    <!-- Application Logic -->
+    <script>
+        function navigateTo(screenId) {
+            document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
+            document.getElementById(screenId).classList.add('active');
+            window.scrollTo(0, 0);
+        }
+
+        function logout() {
+            if (confirm("Are you sure you want to logout?")) {
+                document.getElementById('password').value = '';
+                navigateTo('login-screen');
+            }
+        }
+
+        async function handleLogin(e) {
+            e.preventDefault();
+            const pwdInput = document.getElementById('password').value;
+            try {
+                const res = await fetch('/api/admin_login?password=' + encodeURIComponent(pwdInput));
+                const data = await res.json();
+
+                if (data.status === 'success') {
+                    loadDashboard();
+                } else {
+                    alert('Access Denied. Incorrect Password.');
+                }
+            } catch (e) {
+                alert('Connection to core failed.');
+            }
+        }
+
+        async function loadDashboard() {
+            navigateTo('dashboard-screen');
+            fetchStats();
+            fetchManifest();
+        }
+
+        async function fetchStats() {
+            try {
+                // Fetch Revenue
+                const res = await fetch('/api/admin_revenue');
+                const data = await res.json();
+                // Check if 'revenue' or 'totalRevenue' was returned by backend
+                const amount = data.revenue !== undefined ? data.revenue : data.totalRevenue;
+                document.getElementById('revenue-val').innerText = 'Rs. ' + amount;
+
+                // Fetch Bookings count manually from the manifest
+                const res2 = await fetch('/api/admin_bookings');
+                const tickets = await res2.json();
+                document.getElementById('bookings-val').innerText = tickets.length;
+            } catch (e) {
+                console.error(e);
+            }
+        }
+
+        async function fetchManifest() {
+            const container = document.getElementById('manifest-container');
+            container.innerHTML = '<p>Loading records...</p>';
+
+            try {
+                const res = await fetch('/api/admin_bookings');
+                const tickets = await res.json();
+
+                if (tickets.length === 0) {
+                    container.innerHTML = '<p>No bookings found in database.</p>';
+                    return;
+                }
+
+                let html = '<table class="manifest-table" id="bookingsTable"><tr><th>Tkt ID</th><th>Roll No</th><th>Name</th><th>Bus</th><th>Seat</th></tr>';
+                tickets.forEach(t => {
+                    const passengerName = t.studentName !== undefined ? t.studentName : t.name;
+                    html += `<tr>
+                        <td>#${t.ticketId}</td>
+                        <td>${t.rollNo}</td>
+                        <td>${passengerName}</td>
+                        <td>0${t.busId}</td>
+                        <td>${t.seatNo}</td>
+                    </tr>`;
+                });
+                html += '</table>';
+                container.innerHTML = html;
+            } catch (e) {
+                container.innerHTML = '<p style="color:red">Failed to load manifest.</p>';
+            }
+        }
+
+        function filterTable() {
+            let input = document.getElementById("searchInput");
+            let filter = input.value.toUpperCase();
+            let table = document.getElementById("bookingsTable");
+            if (!table) return;
+            let tr = table.getElementsByTagName("tr");
+
+            for (let i = 1; i < tr.length; i++) {
+                let tdId = tr[i].getElementsByTagName("td")[0];
+                let tdRoll = tr[i].getElementsByTagName("td")[1];
+                let tdName = tr[i].getElementsByTagName("td")[2];
+                if (tdId || tdRoll || tdName) {
+                    let txtValueId = tdId.textContent || tdId.innerText;
+                    let txtValueRoll = tdRoll.textContent || tdRoll.innerText;
+                    let txtValueName = tdName.textContent || tdName.innerText;
+                    if (txtValueId.toUpperCase().indexOf(filter) > -1 ||
+                        txtValueRoll.toUpperCase().indexOf(filter) > -1 ||
+                        txtValueName.toUpperCase().indexOf(filter) > -1) {
+                        tr[i].style.display = "";
+                    } else {
+                        tr[i].style.display = "none";
+                    }
+                }
+            }
+        }
+
+        async function resetBuses() {
+            if (confirm("WARNING: This will permanently delete ALL bookings and reset ALL seats!\n\nAre you sure you want to completely wipe the database?")) {
+                try {
+                    const res = await fetch('/api/admin_reset');
+                    const data = await res.json();
+                    if (data.status === 'success') {
+                        alert("Database has been cleanly formatted!");
+                        loadDashboard(); // Refresh stats to 0
+                    } else {
+                        alert("Reset failed: " + data.message);
+                    }
+                } catch (e) {
+                    alert("System error during reset operation.");
+                }
+            }
+        }
+
+        async function loadPendingUsers() {
+            navigateTo('pending-users-screen');
+            const container = document.getElementById('pending-users-container');
+            container.innerHTML = '<p>Loading pending requests...</p>';
+
+            try {
+                const res = await fetch('/api/admin_pending');
+                const users = await res.json();
+
+                if (users.length === 0) {
+                    container.innerHTML = '<p style="text-align:center; padding:20px; color:#888;">No pending registration requests.</p>';
+                    return;
+                }
+
+                let html = '';
+                users.forEach(u => {
+                    html += `
+                    <div class="card">
+                        <div class="card-header">${u.name}</div>
+                        <div class="card-detail">Roll No: <strong>${u.rollNo}</strong></div>
+                        <div style="display:flex; gap:10px; margin-top:10px; border-top:1px solid #eee; padding-top:10px;">
+                            <button class="btn" style="margin-top:0; padding:8px; background:#2e7d32; font-size:12px;" onclick="approveUser('${u.rollNo}')">Approve</button>
+                            <button class="btn btn-danger" style="margin-top:0; padding:8px; font-size:12px;" onclick="rejectUser('${u.rollNo}')">Reject</button>
+                        </div>
+                    </div>`;
+                });
+                container.innerHTML = html;
+            } catch (e) {
+                container.innerHTML = '<p style="color:red">Error fetching requests.</p>';
+            }
+        }
+
+        async function approveUser(rollNo) {
+            try {
+                const res = await fetch(`/api/admin_approve?rollNo=${encodeURIComponent(rollNo)}`);
+                const data = await res.json();
+                if (data.status === 'success') {
+                    alert('Student approved successfully.');
+                    loadPendingUsers();
+                } else {
+                    alert('Error: ' + data.message);
+                }
+            } catch (e) {
+                alert('Connection error.');
+            }
+        }
+
+        async function rejectUser(rollNo) {
+            if (confirm(`Are you sure you want to REJECT and DELETE the request for ${rollNo}?`)) {
+                try {
+                    const res = await fetch(`/api/admin_reject?rollNo=${encodeURIComponent(rollNo)}`);
+                    const data = await res.json();
+                    if (data.status === 'success') {
+                        alert('Request rejected and deleted.');
+                        loadPendingUsers();
+                    } else {
+                        alert('Error: ' + data.message);
+                    }
+                } catch (e) {
+                    alert('Connection error.');
+                }
+            }
+        }
+
+        async function loadManageStudents() {
+            navigateTo('manage-students-screen');
+            const container = document.getElementById('students-manage-container');
+            container.innerHTML = '<p>Loading members...</p>';
+
+            try {
+                const res = await fetch('/api/admin_all_students');
+                const users = await res.json();
+
+                if (users.length === 0) {
+                    container.innerHTML = '<p style="text-align:center; padding:20px; color:#888;">No members found.</p>';
+                    return;
+                }
+
+                let html = '';
+                users.forEach(u => {
+                    let statusText = '';
+                    let actionBtn = '';
+                    
+                    if (u.status === 0) statusText = '<span style="color:#f59e0b">Pending</span>';
+                    else if (u.status === 1) {
+                        statusText = '<span style="color:#10b981">Approved</span>';
+                        actionBtn = `<button class="btn btn-danger" style="margin-top:0; padding:8px; font-size:12px;" onclick="blacklistUser('${u.rollNo}')">Blacklist</button>`;
+                    }
+                    else if (u.status === 2) {
+                        statusText = '<span style="color:#ef4444">Blacklisted</span>';
+                        actionBtn = `<button class="btn" style="margin-top:0; padding:8px; background:#10b981; font-size:12px;" onclick="unblacklistUser('${u.rollNo}')">Restore Access</button>`;
+                    }
+
+                    html += `
+                    <div class="card">
+                        <div class="card-header">${u.name}</div>
+                        <div class="card-detail">Roll: <strong>${u.rollNo}</strong> | Status: ${statusText}</div>
+                        ${actionBtn ? `<div style="margin-top:10px; border-top:1px solid #eee; padding-top:10px;">${actionBtn}</div>` : ''}
+                    </div>`;
+                });
+                container.innerHTML = html;
+            } catch (e) {
+                container.innerHTML = '<p style="color:red">Error fetching members.</p>';
+            }
+        }
+
+        async function blacklistUser(rollNo) {
+            if (confirm(`Are you sure you want to BLACKLIST student ${rollNo}? They will not be able to login or book.`)) {
+                try {
+                    const res = await fetch(`/api/admin_blacklist?rollNo=${encodeURIComponent(rollNo)}`);
+                    const data = await res.json();
+                    if (data.status === 'success') {
+                        alert('Student blacklisted.');
+                        loadManageStudents();
+                    } else {
+                        alert('Error: ' + data.message);
+                    }
+                } catch (e) {
+                    alert('Connection error.');
+                }
+            }
+        }
+
+        async function unblacklistUser(rollNo) {
+            try {
+                const res = await fetch(`/api/admin_unblacklist?rollNo=${encodeURIComponent(rollNo)}`);
+                const data = await res.json();
+                if (data.status === 'success') {
+                    alert('Student access restored.');
+                    loadManageStudents();
+                } else {
+                    alert('Error: ' + data.message);
+                }
+            } catch (e) {
+                alert('Connection error.');
+            }
+        }
+    </script>
+</body>
+
+</html>
